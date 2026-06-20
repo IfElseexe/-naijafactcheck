@@ -147,75 +147,116 @@ def deep_verify(data: TextInput):
         raise HTTPException(status_code=400, detail="Claim too short.")
 
     # Step 1: Search the web
+    BLOCKED_DOMAINS = ["geilefrauen", "xvideos", "xnxx", "pornhub", "xhamster", ".pics", "redtube", "youporn"]
+
     search_results = []
     try:
         with DDGS() as ddgs:
-            results = list(ddgs.text(claim, max_results=5))
+            search_query = f"{claim} Nigeria news"
+            results = list(ddgs.text(search_query, max_results=10, safesearch="strict"))
             for r in results:
+                url = r.get("href", "").lower()
+                title = r.get("title", "").lower()
+                if any(bad in url or bad in title for bad in BLOCKED_DOMAINS):
+                    continue
                 search_results.append({
                     "title": r.get("title", ""),
                     "snippet": r.get("body", ""),
                     "url": r.get("href", "")
                 })
-    except Exception as e:
+                if len(search_results) >= 5:
+                    break
+    except Exception:
         search_results = []
 
-    # Step 2: Build context
     search_context = ""
     sources_list = []
     for i, r in enumerate(search_results):
         search_context += f"\nSource {i+1}: {r['title']}\n{r['snippet']}\nURL: {r['url']}\n"
         sources_list.append({"title": r["title"], "url": r["url"]})
 
-    # Step 3: Send to Gemini
-    prompt = f"""You are NaijaFactCheck, Nigeria's most trusted AI fact-checker. A user has submitted a news claim for verification.
+    groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-CLAIM SUBMITTED: "{claim}"
+  # STAGE 1: Deep reasoning (internal only, not shown to user)
+    stage1_prompt = f"""You are a rigorous professional fact-checker. Analyse this claim STRICTLY against the web search results below. Do not use outside knowledge or assumptions — only what is in the search results.
 
-WEB SEARCH RESULTS FOUND:
-{search_context if search_context else "No search results found for this claim."}
+CLAIM: "{claim}"
 
-Your job is to:
-1. Carefully analyse the claim against the search results
-2. Give a clear verdict: REAL, FAKE, or UNVERIFIABLE
-3. Explain your reasoning in a conversational, engaging way — talk directly to the user like a knowledgeable Nigerian fact-checker
-4. Mention specific sources and what they say
-5. If the claim is fake, explain exactly why and what the truth actually is
-6. If real, confirm it with evidence
-7. If unverifiable, explain what you found and what is still unclear
+WEB SEARCH RESULTS:
+{search_context if search_context else "No search results found."}
 
-IMPORTANT:
-- Be conversational, confident and thorough
-- Reference actual source names and findings
-- Keep response between 150-250 words
-- YOUR VERY FIRST LINE must be exactly one of these three options, nothing else:
-  VERDICT: REAL
-  VERDICT: FAKE  
-  VERDICT: UNVERIFIABLE
-- Then leave one blank line and start your explanation
-- Never put anything before the VERDICT line
+Rules:
+- If the search results do NOT explicitly confirm the claim, treat it as FALSE/unconfirmed.
+- If the search results show the subject of the claim doing something that contradicts the claim (e.g. attending an event, making public statements, being alive and active), the claim is FALSE.
+- Never invent or assume a source said something it did not say. Only reference what is literally present in the search results above.
+- If search results are empty or irrelevant, state clearly that there is no evidence supporting the claim.
 
-Respond now:"""
+Write a detailed, evidence-only analysis covering: what the claim states, what the search results actually show (quote specifics), any dates/times/locations mentioned, and whether the evidence supports or contradicts the claim."""
 
-    # Step 3: Send to Groq (free, no billing)
     try:
-        groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-        chat_completion = groq_client.chat.completions.create(
-            messages=[{"role": "user", "content": prompt}],
+        stage1 = groq_client.chat.completions.create(
+            messages=[{"role": "user", "content": stage1_prompt}],
             model="llama-3.1-8b-instant",
         )
-        ai_response = chat_completion.choices[0].message.content
+        deep_analysis = stage1.choices[0].message.content
+    except Exception as e:
+        print("Stage 1 error:", str(e))
+        return {
+            "verdict": "FAKE",
+            "explanation": f"Verification error: {str(e)[:200]}",
+            "sources": sources_list,
+            "claim": claim
+        }
 
-        lines = ai_response.strip().split('\n')
-        verdict_line = lines[0] if lines else "VERDICT: UNVERIFIABLE"
+    # STAGE 2: Force binary verdict + structured summary
+    stage2_prompt = f"""You are NaijaFactCheck, Nigeria's AI fact-checker. Below is a strict evidence-based analysis of a news claim. Convert it into a SHORT, DECISIVE, STRUCTURED summary for the end user.
+
+ORIGINAL CLAIM: "{claim}"
+
+EVIDENCE-BASED ANALYSIS:
+{deep_analysis}
+
+STRICT RULES:
+1. You MUST choose either REAL or FAKE based ONLY on what the analysis above actually found.
+2. If the analysis says there is no confirming evidence, or the evidence contradicts the claim, or the claim describes something dramatic (death, disaster, scandal) with no credible confirming source — the verdict MUST be FAKE.
+3. Only mark REAL if the analysis clearly cites real, specific, named sources that directly confirm the claim happened.
+4. NEVER invent sources, dates or facts that are not explicitly present in the analysis above.
+5. The words "unverifiable", "unclear", "uncertain", or "unconfirmed" must NEVER appear anywhere in your response, including the verdict line. You must commit fully to either REAL or FAKE.
+6. If you cannot find clear confirming evidence, that automatically means FAKE — state it confidently as FAKE, not as "unverifiable."
+
+YOUR VERY FIRST LINE must be exactly: VERDICT: REAL or VERDICT: FAKE
+
+Then a blank line, then a structured summary in this EXACT format:
+
+SUMMARY: [One short, punchy sentence stating what the claim is and whether it's true or false]
+
+KEY DETAILS:
+- Date: [date of the claimed event if explicitly found in evidence, or "Not confirmed"]
+- Time: [time if explicitly found, or "Not confirmed"]
+- Location: [location if explicitly found, or "Not confirmed"]
+
+WHY: [2-3 short sentences explaining exactly why this is real or fake, referencing only what the evidence actually showed]
+
+LANGUAGE RULE: Write your entire response in the SAME language as the ORIGINAL CLAIM (English, Yoruba, Igbo, or Hausa). Keep the labels "VERDICT", "SUMMARY", "KEY DETAILS", "Date", "Time", "Location", "WHY" in English always, but the content after them should be in the claim's language.
+
+Keep the whole thing under 120 words total. Be direct and confident."""
+    try:
+        stage2 = groq_client.chat.completions.create(
+            messages=[{"role": "user", "content": stage2_prompt}],
+            model="llama-3.1-8b-instant",
+        )
+        final_response = stage2.choices[0].message.content
+
+        lines = final_response.strip().split('\n')
+        verdict_line = lines[0] if lines else "VERDICT: FAKE"
         explanation = '\n'.join(lines[1:]).strip()
 
-        if "FAKE" in verdict_line:
-            verdict = "FAKE"
-        elif "REAL" in verdict_line:
+        # Force binary verdict no matter what the AI outputs
+        full_text_upper = final_response.upper()
+        if "VERDICT: REAL" in full_text_upper and "VERDICT: FAKE" not in full_text_upper:
             verdict = "REAL"
         else:
-            verdict = "UNVERIFIABLE"
+            verdict = "FAKE"
 
         return {
             "verdict": verdict,
@@ -225,9 +266,9 @@ Respond now:"""
         }
 
     except Exception as e:
-        print("Groq error:", str(e))
+        print("Stage 2 error:", str(e))
         return {
-            "verdict": "UNVERIFIABLE",
+            "verdict": "FAKE",
             "explanation": f"Verification error: {str(e)[:200]}",
             "sources": sources_list,
             "claim": claim

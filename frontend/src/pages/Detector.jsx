@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { Search, Link, Zap, CheckCircle, XCircle, AlertTriangle, ExternalLink, Loader } from 'lucide-react'
+import { useLanguage } from '../lib/LanguageContext'
 
 import { API } from '../config'
 
@@ -12,6 +13,7 @@ export default function Detector() {
   const [loading, setLoading] = useState(false)
   const [deepLoading, setDeepLoading] = useState(false)
   const [error, setError] = useState('')
+  const { t } = useLanguage()
 
   useEffect(() => {
     const saved = sessionStorage.getItem('detectText')
@@ -59,10 +61,10 @@ export default function Detector() {
           <div style={{ width: '36px', height: '36px', background: 'rgba(34,197,94,0.15)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Search size={18} color="#22c55e" />
           </div>
-          <h1 style={{ fontSize: '1.6rem', fontWeight: 800 }}>Fact Checker</h1>
+          <h1 style={{ fontSize: '1.6rem', fontWeight: 800 }}>{t('factChecker')}</h1>
         </div>
         <p style={{ color: '#64748b', fontSize: '0.9rem', paddingLeft: '46px' }}>
-          Paste any news claim, headline or URL to verify its credibility using AI and live web search.
+          {t('factCheckerDesc')}
         </p>
       </div>
 
@@ -94,7 +96,7 @@ export default function Detector() {
         {/* Input */}
         {mode === 'text' ? (
           <textarea value={input} onChange={e => setInput(e.target.value)}
-            placeholder="e.g. Tinubu just died, CBN bans ATM withdrawals..."
+            placeholder={t('textPlaceholder')}
             rows={5}
             style={{
               width: '100%', padding: '1rem', background: '#070d1a',
@@ -109,7 +111,7 @@ export default function Detector() {
           <div style={{ position: 'relative' }}>
             <Link size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
             <input value={input} onChange={e => setInput(e.target.value)}
-              placeholder="https://www.example.com/news-article"
+              placeholder={t('urlPlaceholder')}
               style={{
                 width: '100%', padding: '0.9rem 1rem 0.9rem 2.8rem',
                 background: '#070d1a', border: '1px solid rgba(255,255,255,0.06)',
@@ -131,7 +133,7 @@ export default function Detector() {
               fontWeight: 700, fontSize: '0.95rem', cursor: deepLoading || !input.trim() ? 'not-allowed' : 'pointer',
               transition: 'all 0.2s'
             }}>
-            {deepLoading ? <><Loader size={16} style={{ animation: 'spin 1s linear infinite' }} /> Searching the web...</> : <><Search size={16} /> Deep Verify</>}
+            {deepLoading ? <><Loader size={16} style={{ animation: 'spin 1s linear infinite' }} /> {t('searchingWeb')}</> : <><Search size={16} /> {t('deepVerify')}</>}
           </button>
           <button onClick={handleQuickCheck} disabled={loading || !input.trim()}
             style={{
@@ -143,7 +145,7 @@ export default function Detector() {
               cursor: loading || !input.trim() ? 'not-allowed' : 'pointer', transition: 'all 0.2s'
             }}>
             {loading ? <Loader size={15} style={{ animation: 'spin 1s linear infinite' }} /> : <Zap size={15} />}
-            {loading ? 'Checking...' : 'Quick Check'}
+            {loading ? 'Checking...' : t('quickCheck')}
           </button>
         </div>
       </div>
@@ -155,11 +157,11 @@ export default function Detector() {
           borderRadius: '14px', padding: '1.5rem', textAlign: 'center', marginBottom: '1rem'
         }}>
           <div style={{ color: '#3b82f6', fontWeight: 600, marginBottom: '0.4rem', fontSize: '0.95rem' }}>
-            Searching the web for evidence...
-          </div>
-          <div style={{ color: '#64748b', fontSize: '0.85rem' }}>
-            Analysing sources and cross-referencing claims. This takes 10–20 seconds.
-          </div>
+  {t('searchingWeb')}
+</div>
+<div style={{ color: '#64748b', fontSize: '0.85rem' }}>
+  {t('analysingSource')}
+</div>
         </div>
       )}
 
@@ -193,17 +195,31 @@ export default function Detector() {
             </div>
 
             {/* Explanation */}
-            <div style={{ padding: '1.2rem 1.5rem' }}>
-              <div style={{ color: '#cbd5e1', lineHeight: 1.8, fontSize: '0.92rem', whiteSpace: 'pre-wrap' }}>
-                {deepResult.explanation}
-              </div>
-            </div>
+<div style={{ padding: '1.2rem 1.5rem' }}>
+  <div style={{ color: '#cbd5e1', lineHeight: 1.9, fontSize: '0.92rem', whiteSpace: 'pre-wrap' }}>
+    {deepResult.explanation.split('\n').map((line, i) => {
+      if (line.startsWith('SUMMARY:')) {
+        return <div key={i} style={{ fontWeight: 700, fontSize: '1rem', color: '#f1f5f9', marginBottom: '0.8rem' }}>{line.replace('SUMMARY:', '').trim()}</div>
+      }
+      if (line.startsWith('KEY DETAILS:')) {
+        return <div key={i} style={{ fontWeight: 700, fontSize: '0.78rem', color: '#64748b', letterSpacing: '0.06em', textTransform: 'uppercase', marginTop: '1rem', marginBottom: '0.4rem' }}>Key Details</div>
+      }
+      if (line.startsWith('WHY:')) {
+        return <div key={i} style={{ fontWeight: 700, fontSize: '0.78rem', color: '#64748b', letterSpacing: '0.06em', textTransform: 'uppercase', marginTop: '1rem', marginBottom: '0.4rem' }}>Why</div>
+      }
+      if (line.trim().startsWith('-')) {
+        return <div key={i} style={{ paddingLeft: '0.5rem', marginBottom: '0.2rem' }}>{line}</div>
+      }
+      return line.trim() ? <div key={i}>{line}</div> : null
+    })}
+  </div>
+</div>
 
             {/* Sources */}
             {deepResult.sources?.length > 0 && (
               <div style={{ padding: '0 1.5rem 1.5rem' }}>
                 <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.6rem' }}>
-                  Sources Consulted
+                  {t('sourcesConsulted')}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                   {deepResult.sources.filter(s => s.url).map((s, i) => (
@@ -248,7 +264,7 @@ export default function Detector() {
               <div style={{ height: '6px', background: 'rgba(0,0,0,0.3)', borderRadius: '999px', marginBottom: '1rem', overflow: 'hidden' }}>
                 <div style={{ width: `${result.confidence}%`, height: '100%', background: color, borderRadius: '999px', transition: 'width 0.8s ease' }} />
               </div>
-              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Why this verdict?</div>
+              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>{t('whyVerdict')}</div>
               <ul style={{ paddingLeft: '1rem', color: '#94a3b8' }}>
                 {result.reasons.map((r, i) => <li key={i} style={{ fontSize: '0.88rem', lineHeight: 1.7 }}>{r}</li>)}
               </ul>

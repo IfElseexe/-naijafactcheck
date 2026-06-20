@@ -1,9 +1,11 @@
 import { useNavigate } from 'react-router-dom'
 import { Search, Newspaper, BookOpen, Shield, Zap, Globe } from 'lucide-react'
+import { useLanguage } from '../lib/LanguageContext'
 import logo from '../bowenlogo.png'
 
 export default function Home() {
   const navigate = useNavigate()
+  const { t } = useLanguage()
 
   return (
     <div style={{ minHeight: '90vh' }}>
@@ -21,13 +23,13 @@ export default function Home() {
           </div>
         </div>
 
-        <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3.2rem)', fontWeight: 900, lineHeight: 1.15, marginBottom: '1.2rem', maxWidth: '700px', margin: '0 auto 1.2rem' }}>
-          Nigeria's Most Trusted<br />
-          <span style={{ color: '#22c55e' }}>AI Fact-Checker</span>
-        </h1>
-        <p style={{ color: '#64748b', fontSize: '1rem', maxWidth: '520px', margin: '0 auto 2.5rem', lineHeight: 1.7 }}>
-          Powered by AI and trained on Nigerian news data. Verify any news claim in seconds with deep web analysis.
-        </p>
+       <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3.2rem)', fontWeight: 900, lineHeight: 1.15, marginBottom: '1.2rem', maxWidth: '700px', margin: '0 auto 1.2rem' }}>
+  {t('heroTitle1')}<br />
+  <span style={{ color: '#22c55e' }}>{t('heroTitle2')}</span>
+</h1>
+<p style={{ color: '#64748b', fontSize: '1rem', maxWidth: '520px', margin: '0 auto 2.5rem', lineHeight: 1.7 }}>
+  {t('heroDesc')}
+</p>
         <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
           <button onClick={() => navigate('/detect')} style={{
             display: 'flex', alignItems: 'center', gap: '8px',
@@ -35,7 +37,7 @@ export default function Home() {
             color: '#070d1a', border: 'none', borderRadius: '12px',
             fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer'
           }}>
-            <Search size={18} /> Check a News Story
+            <Search size={18} /> {t('checkNewsStory')}
           </button>
           <button onClick={() => navigate('/feed')} style={{
             display: 'flex', alignItems: 'center', gap: '8px',
@@ -43,7 +45,7 @@ export default function Home() {
             color: '#f1f5f9', border: '1px solid rgba(255,255,255,0.15)',
             borderRadius: '12px', fontWeight: 600, fontSize: '0.95rem', cursor: 'pointer'
           }}>
-            <Newspaper size={18} /> Browse News Feed
+            <Newspaper size={18} /> {t('browseNewsFeed')}
           </button>
         </div>
       </div>

@@ -2,6 +2,9 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/AuthContext'
 import { Shield, Newspaper, Search, History, BookOpen, LogOut, LogIn, Menu, X } from 'lucide-react'
 import { useState } from 'react'
+import { useLanguage } from '../lib/LanguageContext'
+import { languages } from '../lib/translations'
+import { Globe } from 'lucide-react'
 import logo from '../bowenlogo.png'
 
 export default function Navbar() {
@@ -9,14 +12,16 @@ export default function Navbar() {
   const navigate = useNavigate()
   const { user, profile, signOut } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
+  const { lang, changeLang, t } = useLanguage()
+  const [langOpen, setLangOpen] = useState(false)
 
-  const links = [
-    { path: '/', label: 'Home', icon: Shield },
-    { path: '/detect', label: 'Detect', icon: Search },
-    { path: '/feed', label: 'News Feed', icon: Newspaper },
-    { path: '/inside-bowen', label: 'Inside Bowen', icon: BookOpen },
-    { path: '/history', label: 'History', icon: History },
-  ]
+ const links = [
+  { path: '/', label: t('home'), icon: Shield },
+  { path: '/detect', label: t('detect'), icon: Search },
+  { path: '/feed', label: t('newsFeed'), icon: Newspaper },
+  { path: '/inside-bowen', label: t('insideBowen'), icon: BookOpen },
+  { path: '/history', label: t('history'), icon: History },
+]
 
   const handleSignOut = async () => {
     await signOut()
@@ -68,6 +73,38 @@ export default function Navbar() {
 
       {/* Auth */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+        {/* Language Switcher */}
+<div style={{ position: 'relative' }}>
+  <button onClick={() => setLangOpen(!langOpen)} style={{
+    display: 'flex', alignItems: 'center', gap: '6px',
+    padding: '0.45rem 0.7rem', borderRadius: '8px',
+    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+    color: '#94a3b8', cursor: 'pointer', fontSize: '0.82rem'
+  }}>
+    <Globe size={14} />
+    {languages.find(l => l.code === lang)?.flag}
+  </button>
+  {langOpen && (
+    <div style={{
+      position: 'absolute', top: '110%', right: 0,
+      background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)',
+      borderRadius: '10px', padding: '6px', minWidth: '140px',
+      zIndex: 1001, boxShadow: '0 10px 30px rgba(0,0,0,0.4)'
+    }}>
+      {languages.map(l => (
+        <button key={l.code} onClick={() => { changeLang(l.code); setLangOpen(false) }} style={{
+          display: 'flex', alignItems: 'center', gap: '8px', width: '100%',
+          padding: '0.5rem 0.7rem', borderRadius: '6px', border: 'none',
+          background: lang === l.code ? 'rgba(34,197,94,0.1)' : 'transparent',
+          color: lang === l.code ? '#22c55e' : '#94a3b8',
+          cursor: 'pointer', fontSize: '0.85rem', textAlign: 'left'
+        }}>
+          {l.flag} {l.label}
+        </button>
+      ))}
+    </div>
+  )}
+</div>
         {user ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
             <div style={{ textAlign: 'right', display: 'none' }} className="user-info">
@@ -80,7 +117,7 @@ export default function Navbar() {
               background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)',
               color: '#ef4444', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 500
             }}>
-              <LogOut size={14} /> Sign Out
+              <LogOut size={14} /> {t('signOut')}
             </button>
           </div>
         ) : (
@@ -90,7 +127,7 @@ export default function Navbar() {
             background: '#22c55e', color: '#070d1a',
             fontSize: '0.85rem', fontWeight: 600
           }}>
-            <LogIn size={14} /> Sign In
+            <LogIn size={14} /> {t('signIn')}
           </Link>
         )}
 

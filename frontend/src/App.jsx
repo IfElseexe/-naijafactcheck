@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './lib/AuthContext'
+import { LanguageProvider } from './lib/LanguageContext'
+import { Toaster } from 'react-hot-toast'
 import Navbar from './components/Navbar'
 import Home from './pages/Home'
 import Detector from './pages/Detector'
@@ -7,7 +9,6 @@ import Feed from './pages/Feed'
 import History from './pages/History'
 import Auth from './pages/Auth'
 import InsideBowen from './pages/InsideBowen'
-import { Toaster } from 'react-hot-toast'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -18,7 +19,7 @@ function ProtectedRoute({ children }) {
 function AppRoutes() {
   return (
     <>
-       <Toaster position="top-right" toastOptions={{
+      <Toaster position="top-right" toastOptions={{
         style: {
           background: '#1e293b',
           color: '#f1f5f9',
@@ -45,9 +46,11 @@ function AppRoutes() {
 export default function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </LanguageProvider>
     </BrowserRouter>
   )
 }
