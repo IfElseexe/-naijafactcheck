@@ -9,7 +9,6 @@ from bs4 import BeautifulSoup
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 from duckduckgo_search import DDGS
-from google import genai
 from groq import Groq
 from dotenv import load_dotenv
 import os
