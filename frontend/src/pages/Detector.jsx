@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { Search, Link, Zap, CheckCircle, XCircle, AlertTriangle, ExternalLink, Loader } from 'lucide-react'
 
-const API = 'http://127.0.0.1:8000'
+import { API } from '../config'
 
 export default function Detector() {
   const [mode, setMode] = useState('text')
