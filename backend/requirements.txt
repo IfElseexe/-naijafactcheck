@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+scikit-learn
+nltk
+beautifulsoup4
+requests
+python-dotenv
+joblib
+python-multipart
+duckduckgo-search
+groq
