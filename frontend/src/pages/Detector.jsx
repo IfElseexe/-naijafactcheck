@@ -13,12 +13,15 @@ export default function Detector() {
   const [loading, setLoading] = useState(false)
   const [deepLoading, setDeepLoading] = useState(false)
   const [error, setError] = useState('')
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
 
   useEffect(() => {
-    const saved = sessionStorage.getItem('detectText')
-    if (saved) { setInput(saved); sessionStorage.removeItem('detectText') }
-  }, [])
+  const saved = sessionStorage.getItem('detectText')
+  if (saved) {
+    sessionStorage.removeItem('detectText')
+    setTimeout(() => setInput(saved), 0)
+  }
+}, [])
 
   const handleQuickCheck = async () => {
     if (!input.trim()) return
@@ -39,12 +42,12 @@ export default function Detector() {
     if (!input.trim()) return
     setDeepLoading(true); setDeepResult(null); setResult(null); setError('')
     try {
-      const res = await axios.post(`${API}/classify/verify`, { text: input })
+      const res = await axios.post(`${API}/classify/verify`, { text: input, language: lang })
       setDeepResult(res.data)
       const history = JSON.parse(localStorage.getItem('fnHistory') || '[]')
       history.unshift({ label: res.data.verdict, confidence: 95, input, mode: 'deep', date: new Date().toLocaleString() })
       localStorage.setItem('fnHistory', JSON.stringify(history.slice(0, 50)))
-    } catch (e) { setError('Deep verification failed. Try again.') }
+    } catch { setError('Deep verification failed. Try again.') }
     setDeepLoading(false)
   }
 
