@@ -151,9 +151,6 @@ def deep_verify(data: TextInput):
 
     BLOCKED_DOMAINS = ["geilefrauen", "xvideos", "xnxx", "pornhub", "xhamster", ".pics", "redtube", "youporn"]
 
-    import datetime
-    today = datetime.date.today().strftime("%B %d %Y")
-
     def run_search(query):
         results_found = []
         try:
@@ -175,16 +172,17 @@ def deep_verify(data: TextInput):
             pass
         return results_found
 
-    # Step 1: Search with today's date first
-    search_results = run_search(f"{claim} {today}")
+    # Step 1: Broad search first (no date — date was hurting recall)
+    search_results = run_search(f"{claim} latest news")
 
-    # Step 2: Broader search if first returned less than 2 results
-    if len(search_results) < 2:
-        search_results = run_search(f"{claim} latest news")
-
-    # Step 3: Broadest fallback
+    # Step 2: Even broader fallback
     if len(search_results) < 2:
         search_results = run_search(claim)
+
+    # Step 3: Try breaking claim into keywords as last resort
+    if len(search_results) < 2:
+        keywords = " ".join(claim.split()[:6])
+        search_results = run_search(keywords)
 
     search_context = ""
     sources_list = []
@@ -192,7 +190,6 @@ def deep_verify(data: TextInput):
         search_context += f"\nSource {i+1}: {r['title']}\n{r['snippet']}\nURL: {r['url']}\n"
         sources_list.append({"title": r["title"], "url": r["url"]})
 
-    # Language map
     lang_map = {
         "en": "English",
         "yo": "Yoruba",
@@ -203,21 +200,21 @@ def deep_verify(data: TextInput):
 
     groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-    # STAGE 1: Evidence analysis (always in English internally)
-    stage1_prompt = f"""You are a strict fact-checker. Analyse this claim ONLY using the web search results below. Do not use any outside knowledge.
+    # STAGE 1: Evidence analysis — balanced, not biased toward FAKE
+    stage1_prompt = f"""You are a careful, balanced fact-checker. Analyse this claim using ONLY the web search results below.
 
 CLAIM: "{claim}"
 
 WEB SEARCH RESULTS:
 {search_context if search_context else "No search results found."}
 
-Rules:
-- Only use what is explicitly stated in the search results above.
-- If search results confirm the claim with specific facts, say so clearly.
-- If search results contradict the claim or show no evidence, say so clearly.
-- If no relevant results found, state: "No credible evidence found to support this claim."
-- Do not invent any facts, dates, names or sources.
-- Write your analysis in English only. Keep it under 200 words."""
+Your job:
+- If the search results clearly CONFIRM the claim with specific matching facts → say "EVIDENCE: SUPPORTS"
+- If the search results clearly CONTRADICT or DEBUNK the claim → say "EVIDENCE: CONTRADICTS"
+- If the search results are unrelated, too vague, or simply not enough to judge → say "EVIDENCE: INSUFFICIENT"
+- Do NOT assume a claim is false just because you found little evidence. Absence of evidence is not evidence of falsehood.
+- Do not use any knowledge outside these search results.
+- After your EVIDENCE line, write a brief analysis (under 150 words) explaining what the results actually say."""
 
     try:
         stage1 = groq_client.chat.completions.create(
@@ -227,44 +224,46 @@ Rules:
         deep_analysis = stage1.choices[0].message.content
     except Exception as e:
         return {
-            "verdict": "FAKE",
+            "verdict": "UNVERIFIABLE",
             "explanation": "Verification service temporarily unavailable.",
             "sources": sources_list,
             "claim": claim
         }
 
     # STAGE 2: Structured verdict in user's language
-    stage2_prompt = f"""You are NaijaFactCheck, Nigeria's AI fact-checker. Using ONLY the analysis below, produce a short structured verdict.
+    stage2_prompt = f"""You are NaijaFactCheck, Nigeria's AI fact-checker. Using ONLY the analysis below, produce a structured verdict.
 
 ORIGINAL CLAIM: "{claim}"
 
-INTERNAL ANALYSIS (English):
+INTERNAL ANALYSIS:
 {deep_analysis}
 
 OUTPUT RULES:
-1. First line must be EXACTLY one of: VERDICT: REAL    or    VERDICT: FAKE
-2. If the analysis found clear confirming evidence → VERDICT: REAL
-3. If the analysis found no evidence, contradicting evidence, or said "no credible evidence found" → VERDICT: FAKE
-4. After the verdict line, write your structured summary ENTIRELY in {response_language}. Do not mix any other language into the summary.
-5. Do not translate the labels VERDICT, SUMMARY, KEY DETAILS, Date, Time, Location, WHY — keep those in English.
-6. Do not add anything before the VERDICT line.
+1. First line must be EXACTLY one of:
+   - VERDICT: REAL       → use when evidence clearly supports the claim
+   - VERDICT: FAKE       → use when evidence clearly contradicts or debunks the claim
+   - VERDICT: UNVERIFIABLE → use when evidence is insufficient, mixed, or unclear
+2. Do NOT default to FAKE just because evidence is limited. Use UNVERIFIABLE in that case.
+3. After the verdict line, write your summary ENTIRELY in {response_language}.
+4. Keep label words (VERDICT, SUMMARY, KEY DETAILS, Date, Time, Location, WHY) in English.
+5. Do not add anything before the VERDICT line.
 
-FORMAT (write content after each label in {response_language}):
+FORMAT:
 
-VERDICT: [REAL or FAKE]
+VERDICT: [REAL or FAKE or UNVERIFIABLE]
 
-SUMMARY: [One sentence — what the claim says and whether it is true or false]
+SUMMARY: [One sentence — what the claim says and whether it is supported, false, or unverifiable]
 
 KEY DETAILS:
-- Date: [date if found in evidence, else "Not confirmed"]
-- Time: [time if found in evidence, else "Not confirmed"]  
-- Location: [location if found in evidence, else "Not confirmed"]
+- Date: [date if found, else "Not confirmed"]
+- Time: [time if found, else "Not confirmed"]
+- Location: [location if found, else "Not confirmed"]
 
 WHY:
-- [First reason based strictly on evidence]
-- [Second reason based strictly on evidence]
+- [First reason strictly from evidence]
+- [Second reason strictly from evidence]
 
-Keep total response under 150 words. Be direct and confident."""
+Keep total response under 150 words."""
 
     try:
         stage2 = groq_client.chat.completions.create(
@@ -274,14 +273,17 @@ Keep total response under 150 words. Be direct and confident."""
         final_response = stage2.choices[0].message.content
 
         lines = final_response.strip().split('\n')
-        verdict_line = lines[0] if lines else "VERDICT: FAKE"
         explanation = '\n'.join(lines[1:]).strip()
 
         full_text_upper = final_response.upper()
+
+        # Parse all three verdicts explicitly — no biased else branch
         if "VERDICT: REAL" in full_text_upper and "VERDICT: FAKE" not in full_text_upper:
             verdict = "REAL"
-        else:
+        elif "VERDICT: FAKE" in full_text_upper:
             verdict = "FAKE"
+        else:
+            verdict = "UNVERIFIABLE"
 
         return {
             "verdict": verdict,
@@ -293,7 +295,7 @@ Keep total response under 150 words. Be direct and confident."""
     except Exception as e:
         print("Stage 2 error:", str(e))
         return {
-            "verdict": "FAKE",
+            "verdict": "UNVERIFIABLE",
             "explanation": "Verification service temporarily unavailable.",
             "sources": sources_list,
             "claim": claim

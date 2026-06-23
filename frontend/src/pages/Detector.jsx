@@ -45,7 +45,7 @@ export default function Detector() {
       const res = await axios.post(`${API}/classify/verify`, { text: input, language: lang })
       setDeepResult(res.data)
       const history = JSON.parse(localStorage.getItem('fnHistory') || '[]')
-      history.unshift({ label: res.data.verdict, confidence: 95, input, mode: 'deep', date: new Date().toLocaleString() })
+      history.unshift({ label: res.data.verdict, confidence: null, input, mode: 'deep', date: new Date().toLocaleString() })
       localStorage.setItem('fnHistory', JSON.stringify(history.slice(0, 50)))
     } catch { setError('Deep verification failed. Try again.') }
     setDeepLoading(false)
@@ -193,7 +193,9 @@ export default function Detector() {
               </div>
               <div>
                 <div style={{ fontSize: '1.3rem', fontWeight: 800, color }}>{deepResult.verdict}</div>
-                <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '1px' }}>Deep Verified · Live web sources analysed</div>
+                <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '1px' }}>
+  Deep Verified · {deepResult.sources?.length > 0 ? `${deepResult.sources.length} web source${deepResult.sources.length > 1 ? 's' : ''} analysed` : 'No web sources found'}
+</div>
               </div>
             </div>
 
