@@ -24,8 +24,8 @@ export default function Home() {
         </div>
 
        <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3.2rem)', fontWeight: 900, lineHeight: 1.15, marginBottom: '1.2rem', maxWidth: '700px', margin: '0 auto 1.2rem' }}>
-  {t('heroTitle1')}<br />
-  <span style={{ color: '#22c55e' }}>{t('heroTitle2')}</span>
+  AI-Powered<br />
+<span style={{ color: '#22c55e' }}>Fact-Checking Companion</span>
 </h1>
 <p style={{ color: '#64748b', fontSize: '1rem', maxWidth: '520px', margin: '0 auto 2.5rem', lineHeight: 1.7 }}>
   {t('heroDesc')}

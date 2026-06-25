@@ -1,15 +1,12 @@
 import { useState } from 'react'
 import { useAuth } from '../lib/AuthContext'
 import { useNavigate } from 'react-router-dom'
-import { Mail, Lock, User, BookOpen, AlertCircle, Eye, EyeOff } from 'lucide-react'
+import { Mail, Lock, User, AlertCircle, Eye, EyeOff, Shield } from 'lucide-react'
 import toast from 'react-hot-toast'
-import logo from '../bowenlogo.png'
-
-const AUTHORITY_CODE = 'BOWEN2026AUTH'
 
 export default function Auth() {
   const [mode, setMode] = useState('login')
-  const [form, setForm] = useState({ email: '', password: '', fullName: '', department: '', role: 'student', authCode: '' })
+  const [form, setForm] = useState({ email: '', password: '', fullName: '' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showPass, setShowPass] = useState(false)
@@ -19,31 +16,26 @@ export default function Auth() {
   const update = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   const handleSubmit = async () => {
-  setError('')
-  setLoading(true)
-  try {
-    if (mode === 'login') {
-      await signIn(form.email, form.password)
-      toast.success('Welcome back!')
-      navigate('/')
-    } else {
-      if (!form.fullName.trim()) throw new Error('Please enter your full name')
-      if (form.password.length < 6) throw new Error('Password must be at least 6 characters')
-      let role = 'student'
-      if (form.authCode.trim()) {
-        if (form.authCode.trim() !== AUTHORITY_CODE) throw new Error('Invalid authority code')
-        role = 'authority'
+    setError('')
+    setLoading(true)
+    try {
+      if (mode === 'login') {
+        await signIn(form.email, form.password)
+        toast.success('Welcome back!')
+        navigate('/')
+      } else {
+        if (!form.fullName.trim()) throw new Error('Please enter your full name')
+        if (form.password.length < 6) throw new Error('Password must be at least 6 characters')
+        await signUp(form.email, form.password, form.fullName, 'student', '')
+        toast.success('Account created! You can now sign in.')
+        setMode('login')
       }
-      await signUp(form.email, form.password, form.fullName, role, form.department)
-      toast.success('Account created! You can now sign in.')
-      setMode('login')
+    } catch (e) {
+      toast.error(e.message)
+      setError(e.message)
     }
-  } catch (e) {
-    toast.error(e.message)
-    setError(e.message)
+    setLoading(false)
   }
-  setLoading(false)
-}
 
   return (
     <div style={{
@@ -52,14 +44,24 @@ export default function Auth() {
       background: 'radial-gradient(ellipse at top, #0d2137 0%, #070d1a 60%)'
     }}>
       <div style={{ width: '100%', maxWidth: '420px' }}>
+
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <img src={logo} alt="Bowen" style={{ height: '60px', marginBottom: '1rem' }} />
+          <div style={{
+            width: '56px', height: '56px', background: 'rgba(34,197,94,0.15)',
+            borderRadius: '16px', display: 'flex', alignItems: 'center',
+            justifyContent: 'center', margin: '0 auto 1rem'
+          }}>
+            <Shield size={28} color="#22c55e" />
+          </div>
+          <div style={{ fontSize: '0.75rem', color: '#22c55e', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '0.4rem' }}>
+            AI Fact-Checking Companion
+          </div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#f1f5f9' }}>
             {mode === 'login' ? 'Welcome back' : 'Create account'}
           </h1>
           <p style={{ color: '#64748b', fontSize: '0.9rem', marginTop: '0.3rem' }}>
-            {mode === 'login' ? 'Sign in to NaijaFactCheck' : 'Join the Bowen community'}
+            {mode === 'login' ? 'Sign in to NaijaFactCheck' : 'Create your free account'}
           </p>
         </div>
 
@@ -97,17 +99,6 @@ export default function Auth() {
                 {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
-            {mode === 'signup' && (
-              <>
-                <Field icon={<BookOpen size={16} />} placeholder="Department (e.g. Software Engineering)" value={form.department} onChange={v => update('department', v)} />
-                <div>
-                  <Field icon={<Lock size={16} />} placeholder="Authority Code (leave blank if student)" value={form.authCode} onChange={v => update('authCode', v)} />
-                  <p style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '0.4rem', paddingLeft: '0.5rem' }}>
-                    Only staff, lecturers and student body leaders have this code.
-                  </p>
-                </div>
-              </>
-            )}
 
             {error && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '8px', padding: '0.75rem', color: '#ef4444', fontSize: '0.85rem' }}>

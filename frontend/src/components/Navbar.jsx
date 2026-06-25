@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { useLanguage } from '../lib/LanguageContext'
 import { languages } from '../lib/translations'
 import { Globe } from 'lucide-react'
-import logo from '../bowenlogo.png'
+
 
 export default function Navbar() {
   const location = useLocation()
@@ -47,10 +47,12 @@ export default function Navbar() {
     }}>
       {/* Logo */}
       <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <img src={logo} alt="Bowen University" style={{ height: '36px', width: 'auto' }} />
+        <div style={{ width: '36px', height: '36px', background: 'rgba(34,197,94,0.15)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+  <Shield size={20} color="#22c55e" />
+</div>
         <div>
           <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#f1f5f9', lineHeight: 1.1 }}>NaijaFactCheck</div>
-          <div style={{ fontSize: '0.65rem', color: '#22c55e', fontWeight: 500 }}>Bowen University</div>
+<div style={{ fontSize: '0.65rem', color: '#22c55e', fontWeight: 500 }}>AI Fact-Checking Companion</div>
         </div>
       </Link>
 
