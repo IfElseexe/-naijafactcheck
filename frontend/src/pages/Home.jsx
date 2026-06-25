@@ -1,7 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { Search, Newspaper, BookOpen, Shield, Zap, Globe } from 'lucide-react'
 import { useLanguage } from '../lib/LanguageContext'
-import logo from '../bowenlogo.png'
 
 export default function Home() {
   const navigate = useNavigate()
@@ -14,22 +13,29 @@ export default function Home() {
         background: 'radial-gradient(ellipse at 50% 0%, rgba(34,197,94,0.12) 0%, transparent 60%)',
         padding: '5rem 1.5rem 4rem', textAlign: 'center'
       }}>
+        {/* Brand mark */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '1.5rem' }}>
-          <img src={logo} alt="Bowen" style={{ height: '48px' }} />
+          <div style={{
+            width: '44px', height: '44px', background: 'rgba(34,197,94,0.15)',
+            borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}>
+            <Shield size={24} color="#22c55e" />
+          </div>
           <div style={{ width: '1px', height: '40px', background: 'rgba(255,255,255,0.1)' }} />
           <div style={{ textAlign: 'left' }}>
-            <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Bowen University</div>
+            <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase' }}>AI Fact-Checking Companion</div>
             <div style={{ fontSize: '1rem', fontWeight: 700, color: '#22c55e' }}>NaijaFactCheck</div>
           </div>
         </div>
 
-       <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3.2rem)', fontWeight: 900, lineHeight: 1.15, marginBottom: '1.2rem', maxWidth: '700px', margin: '0 auto 1.2rem' }}>
-  AI-Powered<br />
-<span style={{ color: '#22c55e' }}>Fact-Checking Companion</span>
-</h1>
-<p style={{ color: '#64748b', fontSize: '1rem', maxWidth: '520px', margin: '0 auto 2.5rem', lineHeight: 1.7 }}>
-  {t('heroDesc')}
-</p>
+        <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3.2rem)', fontWeight: 900, lineHeight: 1.15, maxWidth: '700px', margin: '0 auto 1.2rem' }}>
+          {t('heroTitle1')}<br />
+          <span style={{ color: '#22c55e' }}>{t('heroTitle2')}</span>
+        </h1>
+        <p style={{ color: '#64748b', fontSize: '1rem', maxWidth: '520px', margin: '0 auto 2.5rem', lineHeight: 1.7 }}>
+          {t('heroDesc')}
+        </p>
+
         <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
           <button onClick={() => navigate('/detect')} style={{
             display: 'flex', alignItems: 'center', gap: '8px',

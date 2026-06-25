@@ -18,7 +18,6 @@ nltk.download('omw-1.4')
 
 print("Creating Nigerian-context fake news dataset...")
 
-# --- FAKE NEWS SAMPLES ---
 fake_samples = [
     "BREAKING: President announces free money for all Nigerians, apply now on this link",
     "EXPOSED: Governor secretly transfers billions to foreign account, insider reveals shocking truth",
